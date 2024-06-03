@@ -22,12 +22,37 @@ namespace pp_source_format
         /// </summary>
         private void ReflectPygmentizeStatus()
         {
+            var configuration = Formatter.GetConfiguration();
+
             if (Pygments.FoundPygmentize)
             {
                 lblPygmentsAvailable.SuperTip = Pygments.PygmentizePath;
 
                 SetBoxVisible(bxAvailable, true);
                 SetBoxVisible(bxUnavailable, false);
+
+                cmbLanguage.Items.Clear();
+                cmbStyle.Items.Clear();
+
+                foreach (var lexer in configuration.Lexers)
+                {
+                    var item = Factory.CreateRibbonDropDownItem();
+                    item.Label = lexer;
+                    cmbLanguage.Items.Add(item);
+                }
+
+                cmbLanguage.Text = CurrentSettings.SelectedLanguage;
+
+                foreach (var style in configuration.Styles)
+                {
+                    var item = Factory.CreateRibbonDropDownItem();
+                    item.Label = style.Name;
+                    item.ScreenTip = style.Info;
+                    cmbStyle.Items.Add(item);
+                }
+
+                cmbStyle.Text = CurrentSettings.SelectedStyle;
+                
             }
             else
             {

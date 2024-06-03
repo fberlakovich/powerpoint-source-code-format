@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -48,7 +48,6 @@ namespace pp_source_format
                     return PpPasteDataType.ppPasteRTF;
                 default:
                     throw new Exception("Unknown paste type: " + f.ToString());
-
             }
         }
 
@@ -65,7 +64,6 @@ namespace pp_source_format
                     return DataFormats.Rtf;
                 default:
                     throw new Exception("Unknown data format: " + f.ToString());
-
             }
         }
 
@@ -82,8 +80,75 @@ namespace pp_source_format
                     return "rtf";
                 default:
                     throw new Exception("Unknown pygments format: " + f.ToString());
-
             }
+        }
+
+        public class PygmentsConfiguration
+        {
+            public class Style
+            {
+                public string Name { get; }
+                public string Info { get; }
+
+                public Style(string  name, string info)
+                {
+                    Name = name;
+                    Info = info;
+                }
+            }
+
+            public IEnumerable<string> Lexers { get; }
+            public List<Style> Styles { get; }
+
+            public PygmentsConfiguration(List<string> lexers, List<Style> styles)
+            {
+                Lexers = lexers;
+                Styles = styles;
+            }
+        }
+
+        public static PygmentsConfiguration GetConfiguration()
+        {
+            var allArguments = new List<string>(new string[]
+            {
+                "-L",
+                "--json",
+            });
+
+
+            var arguments = String.Join(" ", allArguments.ToArray());
+            var startInfo = new ProcessStartInfo()
+            {
+                FileName = Pygments.PygmentizePath,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                CreateNoWindow = true,
+            };
+
+            Process p = new Process()
+            {
+                StartInfo = startInfo
+            };
+
+            p.Start();
+            var result = Task.Run(() => p.StandardOutput.ReadToEnd()).Result;
+            var error = Task.Run(() => p.StandardError.ReadToEnd()).Result;
+            p.WaitForExit();
+
+            if (!String.IsNullOrWhiteSpace(error))
+            {
+                throw new Exception(
+                    String.Format("Error getting supported Pygmentzie lexers and styules {0}:\n", error));
+            }
+
+            var config = JsonNode.Parse(result);
+            var lexerObject = config["lexers"].AsObject();
+            var stylesObject = config["styles"].AsObject();
+            var lexers = lexerObject.Select(x => x.Key).ToList();
+            var styles = stylesObject.Select(x => new PygmentsConfiguration.Style(x.Key, x.Value.AsObject()["doc"].GetValue<string>())).ToList();
+            return new PygmentsConfiguration(lexers, styles);
         }
 
         /// <summary>
@@ -100,7 +165,6 @@ namespace pp_source_format
 
             try
             {
-
                 // Every paste option I tried had different issues, so I use this
                 // switch to switch between them.
                 Format format = Format.HTML;
@@ -125,6 +189,7 @@ namespace pp_source_format
                         var formattedText = RunPygments(item, sourceText, language, style);
                         d.SetData(item.DataFormat(), formattedText);
                     }
+
                     Clipboard.SetDataObject(d);
                 }
                 else
@@ -200,12 +265,14 @@ namespace pp_source_format
             var filePath = Path.Combine(Path.GetTempPath(), "pp-format." + format.PygmentsFormat());
             bool useFilePath = false;
 
-            var options = new List<string>(new string[] {
+            var options = new List<string>(new string[]
+            {
                 "style=" + style,
             });
             if (format == Format.HTML)
             {
-                options.AddRange(new string[] {
+                options.AddRange(new string[]
+                {
                     "noclasses=true",
                     "nowrap=true",
                     //"full=true",
@@ -214,7 +281,8 @@ namespace pp_source_format
             }
 
 
-            var allArguments = new List<string>(new string[] {
+            var allArguments = new List<string>(new string[]
+            {
                 "-f " + format.PygmentsFormat(),
                 "-l " + language,
                 "-O " + '"' + string.Join(",", options.ToArray()) + '"'
@@ -249,25 +317,27 @@ namespace pp_source_format
             };
 
             p.Start();
+
             p.StandardInput.Write(input);
             p.StandardInput.Close();
+            var result = Task.Run(() => useFilePath ? File.ReadAllText(filePath) : p.StandardOutput.ReadToEnd()).Result;
+            var error = Task.Run(() => p.StandardError.ReadToEnd()).Result;
 
             p.WaitForExit();
 
 
-            var error = p.StandardError.ReadToEnd();
             if (!String.IsNullOrWhiteSpace(error))
             {
-                throw new Exception(String.Format("Temp file at {0}, Error running pygmentize with arguments {0}:\n{1}", filePath, arguments, error));
+                throw new Exception(String.Format("Temp file at {0}, Error running pygmentize with arguments {0}:\n{1}",
+                    filePath, arguments, error));
             }
-
-            var result = useFilePath ? File.ReadAllText(filePath) : p.StandardOutput.ReadToEnd();
 
             if (format == Format.HTML)
             {
                 // Wrap the result in a valid, minimal document with the Fragments as required by the HTML Clipboard format
                 // https://docs.microsoft.com/en-us/previous-versions/windows/internet-explorer/ie-developer/platform-apis/aa767917(v=vs.85)
-                result = "<html><body>" + ClipboardHelper.StartFragment + "<pre>" + result + "</pre>" + ClipboardHelper.EndFragment + "</body></html>";
+                result = "<html><body>" + ClipboardHelper.StartFragment + "<pre>" + result + "</pre>" +
+                         ClipboardHelper.EndFragment + "</body></html>";
 
                 // Whitespace at the beginning of lines seems to be collapsed, sadly neither of the
                 // tricks at https://stackoverflow.com/questions/47475774/how-to-add-spaces-to-html-clipboard-data-so-that-winword-inserts-them-on-pasting
@@ -279,10 +349,8 @@ namespace pp_source_format
 
                 // Okay, this is the most nasty part ... We insert &nbsp; after each linebreak to preserve
                 // whitespace formatting. Each whitespace must be replaced by a single non breaking space.
-                result = Regex.Replace(result, "(<br> *)", delegate (Match m)
-                {
-                    return m.Value.Replace(" ", "&nbsp;");
-                });
+                result = Regex.Replace(result, "(<br> *)",
+                    delegate(Match m) { return m.Value.Replace(" ", "&nbsp;"); });
 
                 if (useFilePath)
                 {
@@ -325,6 +393,7 @@ namespace pp_source_format
             {
                 System.Windows.Forms.Application.DoEvents();
             }
+
             web.Document.ExecCommand("SelectAll", false, null);
             web.Document.ExecCommand("Copy", false, null);
             //web.Dispose();

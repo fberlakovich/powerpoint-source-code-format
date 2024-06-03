@@ -25,7 +25,7 @@ namespace pp_source_format.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("java")]
+        [global::System.Configuration.DefaultSettingValueAttribute("Java")]
         public string SelectedLanguage {
             get {
                 return ((string)(this["SelectedLanguage"]));

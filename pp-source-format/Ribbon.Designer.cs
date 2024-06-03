@@ -34,10 +34,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl1 = this.Factory.CreateRibbonDropDownItem();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl2 = this.Factory.CreateRibbonDropDownItem();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl3 = this.Factory.CreateRibbonDropDownItem();
-            Microsoft.Office.Tools.Ribbon.RibbonDropDownItem ribbonDropDownItemImpl4 = this.Factory.CreateRibbonDropDownItem();
             this.tab1 = this.Factory.CreateRibbonTab();
             this.group1 = this.Factory.CreateRibbonGroup();
             this.bxUnavailable = this.Factory.CreateRibbonBox();
@@ -102,24 +98,14 @@
             // 
             // cmbLanguage
             // 
-            ribbonDropDownItemImpl1.Label = "java";
-            ribbonDropDownItemImpl2.Label = "c";
-            this.cmbLanguage.Items.Add(ribbonDropDownItemImpl1);
-            this.cmbLanguage.Items.Add(ribbonDropDownItemImpl2);
             this.cmbLanguage.Label = "Language";
             this.cmbLanguage.Name = "cmbLanguage";
-            this.cmbLanguage.Text = "java";
             this.cmbLanguage.TextChanged += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.OnLanguageChanged);
             // 
             // cmbStyle
             // 
-            ribbonDropDownItemImpl3.Label = "default";
-            ribbonDropDownItemImpl4.Label = "vs";
-            this.cmbStyle.Items.Add(ribbonDropDownItemImpl3);
-            this.cmbStyle.Items.Add(ribbonDropDownItemImpl4);
             this.cmbStyle.Label = "Style";
             this.cmbStyle.Name = "cmbStyle";
-            this.cmbStyle.Text = "default";
             this.cmbStyle.TextChanged += new Microsoft.Office.Tools.Ribbon.RibbonControlEventHandler(this.OnStyleChanged);
             // 
             // btnFormatCurrent
